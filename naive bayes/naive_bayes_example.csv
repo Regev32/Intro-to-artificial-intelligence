@@ -1,0 +1,11 @@
+Age,Hobby,Weather,Buy?
+Young,Paint,cold,Yes
+Young,Music,cold,Yes
+Adult,Paint,cold,Yes
+Adult,Music,cold,Yes
+Old,Music,warm,Yes
+Old,Music,warm,Yes
+Young,Paint,cold,No
+Adult,Paint,cold,No
+Old,Music,cold,No
+Old,Music,warm,No
