@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>1D Optimizer Dynamics</title>
+
+<style>
+body {
+  margin: 0;
+  font-family: system-ui, sans-serif;
+  background: #0f0f0f;
+  color: #eee;
+}
+
+#container {
+  display: flex;
+  height: 100vh;
+}
+
+#sidebar {
+  width: 260px;
+  background: #181818;
+  padding: 15px;
+  box-shadow: inset -1px 0 0 #333;
+}
+
+#sidebar h2 {
+  margin-top: 0;
+}
+
+.opt {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+  font-size: 14px;
+}
+
+.color {
+  width: 14px;
+  height: 14px;
+  margin: 0 8px;
+  border-radius: 3px;
+}
+
+.counter {
+  margin-left: auto;
+  font-family: monospace;
+  color: #ccc;
+}
+
+.sgd { background: #ff5555; }
+.momentum { background: #ffaa00; }
+.nesterov { background: #ff00ff; }
+.adagrad { background: #7b3fe4; }
+.rmsprop { background: #00ff00; }
+.adam { background: #ffffff; }
+
+button {
+  width: 100%;
+  margin-top: 10px;
+  padding: 8px;
+  cursor: pointer;
+}
+
+#main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+h1 {
+  margin: 15px;
+  font-weight: 500;
+}
+
+.math {
+  font-family: "Times New Roman", serif;
+}
+
+canvas {
+  border: 1px solid #333;
+}
+</style>
+</head>
+
+<body>
+
+<div id="container">
+
+  <!-- Sidebar -->
+  <div id="sidebar">
+    <h2>Optimizers</h2>
+
+    <div class="opt">
+      <input type="checkbox" data-opt="SGD">
+      <span class="color sgd"></span> SGD
+      <span class="counter" id="cnt-SGD">0</span>
+    </div>
+
+    <div class="opt">
+      <input type="checkbox" data-opt="Momentum">
+      <span class="color momentum"></span> Momentum
+      <span class="counter" id="cnt-Momentum">0</span>
+    </div>
+
+    <div class="opt">
+      <input type="checkbox" data-opt="Nesterov">
+      <span class="color nesterov"></span> Nesterov
+      <span class="counter" id="cnt-Nesterov">0</span>
+    </div>
+
+    <div class="opt">
+      <input type="checkbox" data-opt="AdaGrad">
+      <span class="color adagrad"></span> AdaGrad
+      <span class="counter" id="cnt-AdaGrad">0</span>
+    </div>
+
+    <div class="opt">
+      <input type="checkbox" data-opt="RMSProp">
+      <span class="color rmsprop"></span> RMSProp
+      <span class="counter" id="cnt-RMSProp">0</span>
+    </div>
+
+    <div class="opt">
+      <input type="checkbox" data-opt="Adam">
+      <span class="color adam"></span> Adam
+      <span class="counter" id="cnt-Adam">0</span>
+    </div>
+
+    <button onclick="start()">Start</button>
+    <button onclick="reset()">Reset</button>
+  </div>
+
+  <!-- Main -->
+  <div id="main">
+    <h1>
+      Optimizer Dynamics on
+      <span class="math">y = x⁵ − 3x³ + x² + sin(x)</span>
+    </h1>
+
+    <canvas id="canvas" width="800" height="500"></canvas>
+  </div>
+
+</div>
+
+<script>
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+
+const W = canvas.width;
+const H = canvas.height;
+
+const X_MIN = -2.5;
+const X_MAX = 2.5;
+const Y_MIN = -6;
+const Y_MAX = 6;
+
+const START_X = -1.4;
+const STEP_INTERVAL_MS = 200;
+const GRAD_EPS = 1e-3;
+
+let running = false;
+let startedOptimizers = new Set();
+let lastStepTime = 0;
+
+// --------------------------------------------------
+// Colors
+// --------------------------------------------------
+const COLORS = {
+  SGD: "#ff5555",
+  Momentum: "#ffaa00",
+  Nesterov: "#ff00ff",
+  AdaGrad: "#7b3fe4",
+  RMSProp: "#00ff00",
+  Adam: "#ffffff"
+};
+
+// --------------------------------------------------
+// Function + derivative
+// --------------------------------------------------
+function f(x) {
+  return x**5 - 3*x**3 + x**2 + Math.sin(x);
+}
+
+function df(x) {
+  return 5*x**4 - 9*x**2 + 2*x + Math.cos(x);
+}
+
+function toCanvas(x, y) {
+  const cx = (x - X_MIN) / (X_MAX - X_MIN) * W;
+  const cy = H - (y - Y_MIN) / (Y_MAX - Y_MIN) * H;
+  return [cx, cy];
+}
+
+// --------------------------------------------------
+// Draw function curve
+// --------------------------------------------------
+function drawCurve() {
+  ctx.strokeStyle = "#888";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  for (let i = 0; i <= W; i++) {
+    const x = X_MIN + i / W * (X_MAX - X_MIN);
+    const y = f(x);
+    const [cx, cy] = toCanvas(x, y);
+    if (i === 0) ctx.moveTo(cx, cy);
+    else ctx.lineTo(cx, cy);
+  }
+  ctx.stroke();
+}
+
+// --------------------------------------------------
+// Optimizers (1D)
+// --------------------------------------------------
+const optimizers = {
+  SGD: { x: START_X, lr: 0.02, steps: 0, done: false },
+  Momentum: { x: START_X, v: 0, lr: 0.02, b: 0.9, steps: 0, done: false },
+  Nesterov: { x: START_X, v: 0, lr: 0.02, b: 0.9, steps: 0, done: false },
+  AdaGrad: { x: START_X, G: 0, lr: 0.4, steps: 0, done: false },
+  RMSProp: { x: START_X, G: 0, lr: 0.02, b: 0.9, steps: 0, done: false },
+  Adam: { x: START_X, m: 0, v: 0, t: 0, lr: 0.05, steps: 0, done: false }
+};
+
+const points = {};
+Object.keys(optimizers).forEach(k => points[k] = []);
+
+function step(name) {
+  const o = optimizers[name];
+  if (o.done) return;
+
+  const g = df(o.x);
+  if (Math.abs(g) < GRAD_EPS) {
+    o.done = true;
+    return;
+  }
+
+  if (name === "SGD") {
+    o.x -= o.lr * g;
+  }
+
+  if (name === "Momentum") {
+    o.v = o.b * o.v - o.lr * g;
+    o.x += o.v;
+  }
+
+  if (name === "Nesterov") {
+    const nx = o.x + o.b * o.v;
+    const ng = df(nx);
+    o.v = o.b * o.v - o.lr * ng;
+    o.x += o.v;
+  }
+
+  if (name === "AdaGrad") {
+    o.G += g * g;
+    o.x -= o.lr * g / Math.sqrt(o.G + 1e-8);
+  }
+
+  if (name === "RMSProp") {
+    o.G = o.b * o.G + (1 - o.b) * g * g;
+    o.x -= o.lr * g / Math.sqrt(o.G + 1e-8);
+  }
+
+  if (name === "Adam") {
+    o.t++;
+    o.m = 0.9 * o.m + 0.1 * g;
+    o.v = 0.999 * o.v + 0.001 * g * g;
+    o.x -= o.lr * o.m / Math.sqrt(o.v + 1e-8);
+  }
+
+  o.steps++;
+  document.getElementById(`cnt-${name}`).textContent = o.steps;
+  points[name].push([o.x, f(o.x)]);
+}
+
+// --------------------------------------------------
+// Animation loop
+// --------------------------------------------------
+function animate(timestamp) {
+  if (!running) return;
+
+  if (timestamp - lastStepTime > STEP_INTERVAL_MS) {
+    startedOptimizers.forEach(step);
+    lastStepTime = timestamp;
+  }
+
+  ctx.clearRect(0, 0, W, H);
+  drawCurve();
+
+  startedOptimizers.forEach(name => {
+    ctx.fillStyle = COLORS[name];
+    points[name].forEach(([x, y]) => {
+      const [cx, cy] = toCanvas(x, y);
+      ctx.beginPath();
+      ctx.arc(cx, cy, 3, 0, 2 * Math.PI);
+      ctx.fill();
+    });
+  });
+
+  requestAnimationFrame(animate);
+}
+
+// --------------------------------------------------
+// Controls
+// --------------------------------------------------
+function start() {
+  reset();
+  document.querySelectorAll("input[data-opt]").forEach(cb => {
+    if (cb.checked) startedOptimizers.add(cb.dataset.opt);
+  });
+  running = true;
+  lastStepTime = performance.now();
+  requestAnimationFrame(animate);
+}
+
+function reset() {
+  running = false;
+  startedOptimizers.clear();
+  lastStepTime = 0;
+
+  Object.keys(optimizers).forEach(k => {
+    optimizers[k].x = START_X;
+    optimizers[k].v = 0;
+    optimizers[k].m = 0;
+    optimizers[k].G = 0;
+    optimizers[k].t = 0;
+    optimizers[k].steps = 0;
+    optimizers[k].done = false;
+    points[k] = [];
+    document.getElementById(`cnt-${k}`).textContent = "0";
+  });
+
+  ctx.clearRect(0, 0, W, H);
+  drawCurve();
+}
+
+// Initial draw
+drawCurve();
+</script>
+
+</body>
+</html>
