@@ -13,36 +13,55 @@
   <div id="sidebar">
     <h2>Optimizers</h2>
 
-    <label class="opt"><input type="checkbox" data-opt="SGD">
-      <span class="color sgd"></span> SGD</label>
+    <label class="opt">
+      <input type="checkbox" data-opt="SGD">
+      <span class="color sgd"></span> SGD
+    </label>
 
-    <label class="opt"><input type="checkbox" data-opt="Momentum">
-      <span class="color momentum"></span> Momentum</label>
+    <label class="opt">
+      <input type="checkbox" data-opt="Momentum">
+      <span class="color momentum"></span> Momentum
+    </label>
 
-    <label class="opt"><input type="checkbox" data-opt="Nesterov">
-      <span class="color nesterov"></span> Nesterov</label>
+    <label class="opt">
+      <input type="checkbox" data-opt="Nesterov">
+      <span class="color nesterov"></span> Nesterov
+    </label>
 
-    <label class="opt"><input type="checkbox" data-opt="AdaGrad">
-      <span class="color adagrad"></span> AdaGrad</label>
+    <label class="opt">
+      <input type="checkbox" data-opt="AdaGrad">
+      <span class="color adagrad"></span> AdaGrad
+    </label>
 
-    <label class="opt"><input type="checkbox" data-opt="RMSProp">
-      <span class="color rmsprop"></span> RMSProp</label>
+    <label class="opt">
+      <input type="checkbox" data-opt="RMSProp">
+      <span class="color rmsprop"></span> RMSProp
+    </label>
 
-    <label class="opt"><input type="checkbox" data-opt="Adam">
-      <span class="color adam"></span> Adam</label>
+    <label class="opt">
+      <input type="checkbox" data-opt="Adam">
+      <span class="color adam"></span> Adam
+    </label>
 
-    <hr>
-
-    <button onclick="toggleMode()">Switch 2D / 1D</button>
     <button onclick="start()">Start</button>
     <button onclick="reset()">Reset</button>
   </div>
 
   <!-- Main -->
   <div id="main">
-    <h1 id="title"></h1>
+    <h1>
+      Optimizer Dynamics on
+      <span class="math">z(x,y) = x² + 0.3y² − 0.5xy</span>
+    </h1>
 
-    <canvas id="canvas" width="800" height="500"></canvas>
+    <div id="plot-area">
+      <canvas id="canvas" width="600" height="600"></canvas>
+
+      <div id="colorbar">
+        <canvas id="colorScale" width="40" height="600"></canvas>
+        <div id="ticks"></div>
+      </div>
+    </div>
   </div>
 
 </div>

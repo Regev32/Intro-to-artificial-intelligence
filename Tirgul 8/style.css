@@ -25,6 +25,7 @@ body {
   display: flex;
   align-items: center;
   margin-bottom: 10px;
+  cursor: pointer;
 }
 
 .color {
@@ -34,10 +35,11 @@ body {
   border-radius: 3px;
 }
 
+/* Optimizer colors */
 .sgd { background: #ff5555; }
 .momentum { background: #ffaa00; }
 .nesterov { background: #ff00ff; }
-.adagrad { background: #7b3fe4; }
+.adagrad { background: #7b3fe4; }   /* deep violet */
 .rmsprop { background: #00ff00; }
 .adam { background: #ffffff; }
 
@@ -55,6 +57,36 @@ button {
   align-items: center;
 }
 
+h1 {
+  margin: 15px;
+  font-weight: 500;
+}
+
+.math {
+  font-family: "Times New Roman", serif;
+}
+
+#plot-area {
+  display: flex;
+  align-items: center;
+}
+
 canvas {
   border: 1px solid #333;
+}
+
+#colorbar {
+  margin-left: 12px;
+  position: relative;
+}
+
+#ticks {
+  position: absolute;
+  right: -45px;
+  top: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  font-size: 12px;
 }
